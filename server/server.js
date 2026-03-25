@@ -3,6 +3,18 @@ const express = require('express');
 const cors = require('cors');
 const path = require('path');
 const db = require('./db');
+
+// --- AUTO-SEED DATA IF EMPTY (FOR CLOUD) ---
+try {
+  const count = db.prepare('SELECT COUNT(*) as count FROM questions').get().count;
+  if (count === 0) {
+    console.log('--- DATABASE EMPTY: SEEDING INITIAL DATA ---');
+    require('./seed');
+  }
+} catch (e) {
+  console.error('Seed check failed, skipping...', e.message);
+}
+
 const { generateQuestions } = require('./ai_generator');
 
 const app = express();
