@@ -309,7 +309,7 @@ export default function Lesson({ user, phase, onEnd }) {
       </div>
 
       {/* Main Content */}
-      <div className="flex-1 px-6 pt-6 pb-40 overflow-y-auto flex flex-col items-center">
+      <div className="flex-1 px-6 pt-6 pb-32 overflow-y-auto override-scroll flex flex-col items-center">
         <h3 className="text-brand-600 font-black text-sm tracking-widest uppercase mb-4 opacity-80">{q.phase}</h3>
         
         {/* Scenario Image */}
@@ -384,7 +384,7 @@ export default function Lesson({ user, phase, onEnd }) {
 
       {/* Check Action Button Container (Fixed at bottom) */}
       {!feedback && !isCompleted && (
-        <div className={`fixed bottom-0 left-0 right-0 sm:absolute p-4 bg-white border-t-2 border-slate-100 shadow-[0_-10px_40px_-5px_rgba(0,0,0,0.1)] transition-transform duration-300 z-50 ${selectedOption ? 'translate-y-0' : 'translate-y-full opacity-0'}`}>
+        <div className={`absolute bottom-0 left-0 right-0 p-4 bg-white/90 backdrop-blur-sm border-t border-slate-100 shadow-[0_-10px_40px_-5px_rgba(0,0,0,0.05)] transition-all duration-300 z-50 ${selectedOption ? 'translate-y-0 opacity-100 scale-100' : 'translate-y-4 opacity-0 scale-95 pointer-events-none'}`}>
            <button 
              onClick={handleCheck}
              disabled={isChecking}
@@ -414,7 +414,7 @@ export default function Lesson({ user, phase, onEnd }) {
 
       {/* Feedback Drawer */}
       {feedback && !isCompleted && (
-        <div className={`fixed bottom-0 left-0 right-0 sm:absolute p-4 bg-white border-t-2 border-slate-100 shadow-[0_-10px_40px_-5px_rgba(0,0,0,0.1)] transition-transform duration-300 z-50 ${feedback.isCorrect ? 'bg-success-100 ring-1 ring-success-200' : 'bg-accent-100 ring-1 ring-accent-200'}`}>
+        <div className={`absolute bottom-0 left-0 right-0 p-4 bg-white border-t-2 border-slate-100 shadow-[0_-10px_40px_-5px_rgba(0,0,0,0.1)] transition-all duration-300 z-50 ${feedback.isCorrect ? 'bg-success-100 ring-1 ring-success-200' : 'bg-accent-100 ring-1 ring-accent-200'}`}>
           <div className="flex items-start mb-6 px-2">
             <div className="mt-1 mr-4 shrink-0 bg-white p-1 rounded-full shadow-lg border-4 border-white/50 relative z-10 animate-bounce">
               <img src="/images/logo_nuevo.png" alt="Buhotech" className="w-16 h-16 object-contain rounded-full bg-white" />

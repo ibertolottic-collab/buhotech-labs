@@ -57,8 +57,24 @@
   .card {
     @apply bg-white rounded-3xl shadow-sm border border-slate-200 overflow-hidden;
   }
+  
+  /* Mejorar scroll en móviles sin ocultarlo totalmente */
   .override-scroll::-webkit-scrollbar {
-    width: 0px;
+    width: 4px;
     background: transparent;
+  }
+  .override-scroll::-webkit-scrollbar-thumb {
+    background: rgba(15, 165, 233, 0.2);
+    border-radius: 10px;
+  }
+
+  /* Altura dinámica para evitar que se corte en móviles */
+  .h-dynamic {
+    height: 100vh;
+    height: 100dvh;
+  }
+  .min-h-dynamic {
+    min-height: 100vh;
+    min-height: 100dvh;
   }
 }

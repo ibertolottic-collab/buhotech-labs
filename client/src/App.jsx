@@ -29,8 +29,8 @@ function App() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 flex justify-center text-slate-900 font-sans p-4">
-      <div className="w-full max-w-md bg-white rounded-3xl shadow-xl overflow-hidden border border-slate-100 flex flex-col relative">
+    <div className="min-h-dynamic bg-slate-50 flex justify-center text-slate-900 font-sans md:p-4">
+      <div className="w-full max-w-md bg-white md:rounded-3xl shadow-xl md:overflow-hidden md:border border-slate-100 flex flex-col relative h-dynamic md:h-auto md:max-h-[90vh]">
         {currentView === 'login' && <Login onLogin={handleLogin} />}
         {currentView === 'dashboard' && <Dashboard user={user} onStart={handleStartLesson} onLogout={() => setUser(null)} />}
         {currentView === 'lesson' && <Lesson user={user} phase={selectedPhase} onEnd={handleEndLesson} />}

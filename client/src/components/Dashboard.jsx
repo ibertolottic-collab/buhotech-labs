@@ -125,7 +125,7 @@ export default function Dashboard({ user, onStart, onLogout }) {
         </div>
       </div>
 
-      <div className="flex-1 px-6 pb-8 overflow-y-auto flex flex-col items-center relative">
+      <div className="flex-1 px-6 pb-12 overflow-y-auto override-scroll flex flex-col items-center relative">
         <h3 className="text-brand-600 font-bold mb-6 tracking-widest uppercase text-sm z-10 bg-white px-4 rounded-full py-1 shadow-sm border border-brand-100">Ruta de Detectives</h3>
         
         <div className="w-full flex flex-col space-y-8 relative">
