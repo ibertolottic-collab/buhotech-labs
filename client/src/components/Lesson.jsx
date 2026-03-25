@@ -456,8 +456,9 @@ export default function Lesson({ user, phase, onEnd }) {
 
       {/* Results View */}
       {isCompleted && (
-        <div className="fixed inset-0 z-50 bg-slate-50 flex flex-col items-center p-6 sm:p-10 animate-in slide-in-from-bottom-8 duration-500 overflow-y-auto">
-          <div className="w-full max-w-3xl bg-white rounded-3xl shadow-xl border border-slate-100 overflow-hidden flex flex-col mb-10 pb-8">
+        <div className="fixed inset-0 z-50 bg-slate-50 flex flex-col items-center animate-in slide-in-from-bottom-8 duration-500 overflow-hidden">
+          <div className="flex-1 w-full overflow-y-auto override-scroll flex flex-col items-center p-4 sm:p-10 pb-32">
+            <div className="w-full max-w-3xl bg-white rounded-3xl shadow-xl border border-slate-100 overflow-hidden flex flex-col mb-4">
             
             {/* Header */}
             <div className="bg-brand-600 p-8 flex flex-col items-center relative overflow-hidden">
@@ -504,7 +505,7 @@ export default function Lesson({ user, phase, onEnd }) {
               
               {/* History Table */}
               <h3 className="text-xl font-black text-slate-800 mb-4 tracking-tight border-b-2 border-slate-100 pb-2">Historial de Misiones</h3>
-              <div className="space-y-3 mb-10 max-h-80 overflow-y-auto pr-2 custom-scrollbar">
+              <div className="space-y-3 mb-4">
                  {responsesHistory.map((item, idx) => (
                    <div key={idx} className={`p-4 rounded-xl border flex gap-4 ${item.isCorrect ? 'bg-success-50/50 border-success-100' : 'bg-accent-50/50 border-accent-100'}`}>
                      <div className={`mt-1 shrink-0 w-8 h-8 rounded-full flex items-center justify-center font-black text-white shadow-sm ${item.isCorrect ? 'bg-success-500' : 'bg-accent-500'}`}>
@@ -518,17 +519,20 @@ export default function Lesson({ user, phase, onEnd }) {
                  ))}
               </div>
               
-              {/* Actions */}
-              <div className="flex flex-col sm:flex-row gap-4 pt-6 mt-4 border-t-2 border-slate-100 justify-center">
+            </div>
+          </div>
+          </div>
+          
+          {/* Fixed Bottom Action Bar */}
+          <div className="absolute bottom-0 left-0 right-0 p-4 bg-white/95 backdrop-blur-sm border-t border-slate-200 shadow-[0_-10px_40px_-5px_rgba(0,0,0,0.05)] z-50">
+             <div className="max-w-3xl mx-auto flex justify-center">
                 <button 
                    onClick={() => onEnd(feedback?.updatedUser || user)}
-                   className="w-full sm:w-2/3 py-4 px-6 text-white text-lg font-black rounded-2xl shadow-lg bg-brand-600 hover:bg-brand-700 transition-transform active:scale-95 flex items-center justify-center gap-2"
+                   className="w-full py-4 px-6 text-white text-xl tracking-wide font-black rounded-2xl shadow-lg bg-brand-600 hover:bg-brand-700 transition-transform active:scale-95 flex items-center justify-center gap-2"
                 >
-                   Regresar al Mapa de Módulos <span>→</span>
+                   Regresar al Mapa de Módulos <span className="text-2xl ml-2">→</span>
                 </button>
-              </div>
-
-            </div>
+             </div>
           </div>
         </div>
       )}
