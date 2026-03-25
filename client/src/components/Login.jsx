@@ -1,8 +1,7 @@
 import React, { useState } from 'react';
 import axios from 'axios';
-import { RocketIcon } from 'lucide-react';
 
-const API_URL = 'http://localhost:3001/api';
+const API_URL = '/api';
 
 export default function Login({ onLogin }) {
   const [username, setUsername] = useState('');
@@ -24,12 +23,16 @@ export default function Login({ onLogin }) {
   };
 
   return (
-    <div className="flex-1 flex flex-col justify-center items-center p-8 bg-gradient-to-b from-brand-50 to-white">
-      <div className="w-20 h-20 bg-brand-500 rounded-3xl flex items-center justify-center text-white shadow-lg mb-8 rotate-12">
-        <RocketIcon size={40} className="-rotate-12" />
-      </div>
-      <h1 className="text-3xl font-extrabold text-slate-800 mb-2 font-sans tracking-tight">Antigravity</h1>
-      <p className="text-slate-500 mb-8 text-center">Aprende Metodología de la Investigación</p>
+    <div className="flex-1 flex flex-col justify-center items-center p-8 bg-linear-to-b from-brand-50 to-white">
+      <p className="text-red-700 font-black uppercase tracking-widest text-xl sm:text-2xl mb-8 drop-shadow-sm">USMP - Virtual</p>
+      
+      <img src="/images/logo_nuevo.png" alt="Búhotech Logo" className="w-28 h-28 object-contain rounded-3xl mb-6 shadow-xl" />
+      
+      <h1 className="text-3xl font-extrabold text-slate-800 mb-2 font-sans tracking-tight text-center leading-tight">
+        Búhotech Labs <br/>
+        <span className="text-xl text-brand-600 font-bold">- modelo Birdbrain -</span>
+      </h1>
+      <p className="text-slate-500 mb-8 text-center font-bold text-sm tracking-wide">(aprendizaje potenciado con IA)</p>
       
       <form onSubmit={handleSubmit} className="w-full">
         <input 

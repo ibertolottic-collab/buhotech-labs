@@ -1,14 +1,16 @@
+require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const path = require('path');
 const db = require('./db');
+const { generateQuestions } = require('./ai_generator');
 
 const app = express();
 app.use(cors());
 app.use(express.json());
 
 // Servir la carpeta estática de imágenes
-app.use('/images', express.static(path.join(__dirname, '../../Imagenes')));
+app.use('/images', express.static(path.join(__dirname, '../Imagenes')));
 app.use(express.json());
 
 // Users Endpoints
@@ -19,8 +21,12 @@ app.post('/api/users/login', (req, res) => {
   let user = db.prepare('SELECT * FROM users WHERE username = ?').get(username);
   if (!user) {
     const id = Date.now().toString(); // simple ID generator for prototype
-    db.prepare('INSERT INTO users (id, username, xp, hearts, streak_days, unlocked_module) VALUES (?, ?, 0, 10, 0, 1)').run(id, username);
+    db.prepare('INSERT INTO users (id, username, xp, hearts, streak_days, unlocked_module) VALUES (?, ?, 0, 50, 0, 1)').run(id, username);
     user = db.prepare('SELECT * FROM users WHERE id = ?').get(id);
+  } else {
+    // Reload hearts for testing easily
+    db.prepare('UPDATE users SET hearts = MAX(hearts, 50) WHERE id = ?').run(user.id);
+    user = db.prepare('SELECT * FROM users WHERE id = ?').get(user.id);
   }
   res.json(user);
 });
@@ -42,9 +48,9 @@ app.get('/api/questions', (req, res) => {
   
   // parse the options JSON
   questions.forEach(q => {
-    try {
-        q.options = JSON.parse(q.options);
-    } catch(e) {}
+    try { q.options = JSON.parse(q.options); } catch(e) {}
+    try { if (q.verification_options) q.verification_options = JSON.parse(q.verification_options); } catch(e) {}
+    try { if (q.rescue_options) q.rescue_options = JSON.parse(q.rescue_options); } catch(e) {}
   });
   res.json(questions);
 });
@@ -66,7 +72,7 @@ app.post('/api/users/:id/complete_module', (req, res) => {
 
 // Response & Metric Logic
 app.post('/api/responses', (req, res) => {
-  const { user_id, question_id, is_correct, response_time_ms } = req.body;
+  const { user_id, question_id, is_correct, response_time_ms, sub_question_type = 'main' } = req.body;
   
   const question = db.prepare('SELECT * FROM questions WHERE id = ?').get(question_id);
   if (!question) return res.status(404).json({ error: 'Question not found' });
@@ -80,9 +86,9 @@ app.post('/api/responses', (req, res) => {
 
   // Record metrics
   db.prepare(`
-    INSERT INTO user_responses (user_id, question_id, is_correct, response_time_ms, behavior_flag) 
-    VALUES (?, ?, ?, ?, ?)
-  `).run(user_id, question_id, is_correct ? 1 : 0, response_time_ms, behavior_flag);
+    INSERT INTO user_responses (user_id, question_id, is_correct, response_time_ms, behavior_flag, sub_question_type) 
+    VALUES (?, ?, ?, ?, ?, ?)
+  `).run(user_id, question_id, is_correct ? 1 : 0, response_time_ms, behavior_flag, sub_question_type);
 
   // Update user state if behavior was normal or thinking
   let user = db.prepare('SELECT * FROM users WHERE id = ?').get(user_id);
@@ -96,24 +102,117 @@ app.post('/api/responses', (req, res) => {
   
   user = db.prepare('SELECT * FROM users WHERE id = ?').get(user_id);
   
+  const is_main = sub_question_type === 'main';
+  let fbText = "";
+  if (is_correct) {
+      fbText = is_main && question.verification_text ? question.verification_text : "¡Perfecto! Has ganado 10 XP adicionales al dominar el concepto.";
+  } else {
+      fbText = is_main && question.rescue_text ? question.rescue_text : "No te preocupes. ¡Sigue investigando y lo lograrás!";
+  }
+
   // Return response with scaffolded feedback
   res.json({
     success: true,
     user,
-    feedback: is_correct ? {
-      type: 'VERIFICATION',
-      text: question.verification_text,
+    feedback: {
+      type: is_correct ? (is_main ? 'VERIFICATION' : 'PRAISE') : (is_main ? 'RESCUE' : 'ENCOURAGE'),
+      text: fbText,
       xp_gained: behavior_flag !== 'FAST_RANDOM' ? 10 : 0
-    } : {
-      type: 'RESCUE',
-      text: question.rescue_text,
-      hearts_lost: 1
     },
     behavior: behavior_flag
   });
 });
 
-const PORT = 3001;
+// AI Question Generation Endpoint
+app.post('/api/questions/generate', async (req, res) => {
+  const { topic, count } = req.body;
+  if (!topic) return res.status(400).json({ error: 'Topic is required' });
+  
+  if (!process.env.GEMINI_API_KEY) {
+    return res.status(500).json({ error: 'GEMINI_API_KEY is not configured on the server.' });
+  }
+
+  try {
+    const generatedQuestions = await generateQuestions(topic, count || 3);
+    
+    // Insert them into the DB
+    const insert = db.prepare(`
+      INSERT OR IGNORE INTO questions 
+      (id, phase, type, text, options, correct_answer, image_filename, min_reading_time_ms, expected_time_ms, verification_text, verification_options, verification_answer, verification_image_filename, rescue_text, rescue_options, rescue_answer, rescue_image_filename)
+      VALUES (@id, @phase, @type, @text, @options, @correct_answer, @image_filename, @min_reading_time_ms, @expected_time_ms, @verification_text, @verification_options, @verification_answer, @verification_image_filename, @rescue_text, @rescue_options, @rescue_answer, @rescue_image_filename)
+    `);
+
+    const insertMany = db.transaction((qs) => {
+      for (const q of qs) {
+        // Ensure ID uniqueness
+        q.id = "gen_" + Date.now() + "_" + Math.floor(Math.random() * 1000);
+        
+        insert.run({
+          ...q,
+          options: JSON.stringify(q.options),
+          verification_options: q.verification_options ? JSON.stringify(q.verification_options) : null,
+          rescue_options: q.rescue_options ? JSON.stringify(q.rescue_options) : null,
+        });
+      }
+    });
+    
+    insertMany(generatedQuestions);
+    
+    res.json({ success: true, count: generatedQuestions.length, data: generatedQuestions });
+  } catch (err) {
+    console.error("Endpoint AI Error:", err);
+    res.status(500).json({ error: 'Failed to generate questions using AI.' });
+  }
+});
+app.get('/api/users/:id/report', (req, res) => {
+  const { id } = req.params;
+  try {
+    let history;
+    try {
+      history = db.prepare(`
+        SELECT r.is_correct, r.sub_question_type, q.text as main_text, q.verification_text, q.rescue_text, q.phase 
+        FROM user_responses r 
+        JOIN questions q ON r.question_id = q.id 
+        WHERE r.user_id = ?
+        ORDER BY r.id ASC
+      `).all(id);
+    } catch (sqlErr) {
+      // Fallback: sub_question_type column might not exist in old DBs
+      console.warn('Fallback query without sub_question_type:', sqlErr.message);
+      history = db.prepare(`
+        SELECT r.is_correct, 'main' as sub_question_type, q.text as main_text, q.verification_text, q.rescue_text, q.phase 
+        FROM user_responses r 
+        JOIN questions q ON r.question_id = q.id 
+        WHERE r.user_id = ?
+        ORDER BY r.id ASC
+      `).all(id);
+    }
+    
+    const formatted = history.map(item => {
+      let text = item.main_text;
+      if (item.sub_question_type === 'verification' && item.verification_text) text = item.verification_text;
+      if (item.sub_question_type === 'rescue' && item.rescue_text) text = item.rescue_text;
+      return {
+        phase: item.phase,
+        text: text || 'Pregunta sin texto',
+        isCorrect: !!item.is_correct
+      };
+    });
+    res.json(formatted);
+  } catch (err) {
+    console.error('Report endpoint error:', err);
+    res.status(500).json({ error: 'Failed to fetch report.' });
+  }
+});
+
+// Serve compiled frontend in production
+const clientBuildPath = path.join(__dirname, '../client/dist');
+app.use(express.static(clientBuildPath));
+app.get('{*path}', (req, res) => {
+  res.sendFile(path.join(clientBuildPath, 'index.html'));
+});
+
+const PORT = process.env.PORT || 3001;
 app.listen(PORT, () => {
   console.log(`Server running on http://localhost:${PORT}`);
 });

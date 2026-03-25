@@ -26,7 +26,13 @@ db.exec(`
     min_reading_time_ms INTEGER,
     expected_time_ms INTEGER,
     verification_text TEXT,
-    rescue_text TEXT
+    verification_options TEXT,
+    verification_answer TEXT,
+    rescue_text TEXT,
+    rescue_options TEXT,
+    rescue_answer TEXT,
+    verification_image_filename TEXT,
+    rescue_image_filename TEXT
   );
 
   CREATE TABLE IF NOT EXISTS user_responses (
@@ -36,10 +42,18 @@ db.exec(`
     is_correct BOOLEAN,
     response_time_ms INTEGER,
     behavior_flag TEXT,
+    sub_question_type TEXT DEFAULT 'main',
     timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY(user_id) REFERENCES users(id),
     FOREIGN KEY(question_id) REFERENCES questions(id)
   );
 `);
+
+// Safely add column if upgrading from old schema
+try {
+  db.exec(`ALTER TABLE user_responses ADD COLUMN sub_question_type TEXT DEFAULT 'main'`);
+} catch (e) {
+  // Column already exists, ignore
+}
 
 module.exports = db;
