@@ -266,6 +266,7 @@ app.get('/api/admin/export', (req, res) => {
                 racha: row.racha_dias,
                 global_correct: 0,
                 global_total: 0,
+                global_azar: 0,
                 phases: {},
                 questions: {}
             };
@@ -277,6 +278,7 @@ app.get('/api/admin/export', (req, res) => {
         const p = row.modulo_pregunta;
         usersMap[u].global_total += 1;
         usersMap[u].global_correct += row.is_correct;
+        if (row.perfil_comportamiento === 'Azar Rápido') usersMap[u].global_azar += 1;
         
         if (usersMap[u].phases[p]) {
             usersMap[u].phases[p].total += 1;
@@ -297,7 +299,7 @@ app.get('/api/admin/export', (req, res) => {
 
     const sortedQids = Array.from(allQuestionIds).sort();
 
-    const headers = ['Usuario', 'XP_Total', 'Vidas_Restantes', 'Modulo_Max_Alcanzado', 'Racha_Dias', 'Nota_Vigesimal_Final_Global'];
+    const headers = ['Usuario', 'XP_Total', 'Vidas_Restantes', 'Modulo_Max_Alcanzado', 'Racha_Dias', 'Nota_Vigesimal_Final_Global', 'Algoritmo_Desercion_Churn', 'Algoritmo_Engagement', 'Algoritmo_Perfil_Cognitivo'];
     
     phaseNames.forEach((p, idx) => {
         const m = `Fase_${idx+1}`;
@@ -325,7 +327,22 @@ app.get('/api/admin/export', (req, res) => {
             globalNota = Math.round(10 + (u.global_correct / u.global_total) * 10);
         }
         
-        const row = [`"${uname}"`, u.xp, u.vidas, u.modulo_max, u.racha, globalNota];
+        let churn = 'Activo';
+        if (u.vidas <= 0) churn = 'Abandonó (Frustración)';
+        else if (u.modulo_max >= 5) churn = 'Completó Búhotech';
+        
+        let engagement = 'Bajo (0-1 días)';
+        if (u.racha === 2) engagement = 'Medio (2 días)';
+        else if (u.racha > 2) engagement = 'Alto (Hábito Formado)';
+        
+        let perfil = 'Normal / Equilibrado';
+        if (u.global_total > 0) {
+            const azarRatio = u.global_azar / u.global_total;
+            if (azarRatio >= 0.3) perfil = 'Impulsivo (Adivina a menudo)';
+            else if (azarRatio <= 0.05) perfil = 'Reflexivo (Cauteloso)';
+        }
+
+        const row = [`"${uname}"`, u.xp, u.vidas, u.modulo_max, u.racha, globalNota, `"${churn}"`, `"${engagement}"`, `"${perfil}"`];
 
         phaseNames.forEach(p => {
             const mData = u.phases[p];
