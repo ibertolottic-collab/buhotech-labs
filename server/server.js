@@ -217,65 +217,126 @@ app.get('/api/users/:id/report', (req, res) => {
   }
 });
 
-// Admin Export Endpoint
+// Admin Export Endpoint (Wide Format - 1 Fila por Alumno)
 app.get('/api/admin/export', (req, res) => {
   try {
-    const data = db.prepare(`
+    const rawResponses = db.prepare(`
         SELECT 
           u.username as usuario,
           u.xp as xp_acumulada_total,
           u.hearts as vidas_restantes_total,
           u.unlocked_module as modulo_max_alcanzado,
+          u.streak_days as racha_dias,
           q.phase as modulo_pregunta,
-          q.type as tema_concepto,
-          CASE 
-            WHEN r.sub_question_type = 'main' THEN 'Principal'
-            WHEN r.sub_question_type = 'verification' THEN 'Refuerzo/Verificación'
-            WHEN r.sub_question_type = 'rescue' THEN 'Rescate'
-            ELSE r.sub_question_type 
-          END as tipo_mision,
+          r.question_id,
           CASE 
             WHEN r.is_correct = 1 THEN 'Correcto'
             ELSE 'Incorrecto' 
           END as resultado_respuesta,
           CASE 
-            WHEN r.behavior_flag = 'FAST_RANDOM' THEN 'Azar Rápido (Penalizado)'
+            WHEN r.behavior_flag = 'FAST_RANDOM' THEN 'Azar Rápido'
             WHEN r.behavior_flag = 'SEARCHING_THINKING' THEN 'Pensamiento Crítico'
             ELSE 'Normal' 
           END as perfil_comportamiento,
           r.response_time_ms as tiempo_respuesta_ms,
-          CASE 
-            WHEN r.is_correct = 1 AND r.behavior_flag != 'FAST_RANDOM' THEN 10 
-            ELSE 0 
-          END as xp_obtenida_pregunta,
-          ROUND(10.0 + (SUM(r.is_correct) OVER (PARTITION BY r.user_id, q.phase) * 10.0 / COUNT(r.id) OVER (PARTITION BY r.user_id, q.phase)), 1) as nota_vigesimal_del_modulo,
-          datetime(r.timestamp, 'localtime') as fecha_hora
+          r.is_correct
         FROM user_responses r
         JOIN users u ON r.user_id = u.id
         JOIN questions q ON r.question_id = q.id
-        ORDER BY u.username ASC, r.timestamp ASC
+        WHERE u.username != 'admin' AND u.username != 'admin-buhotech'
+        ORDER BY r.timestamp ASC
     `).all();
 
-    if (!data.length) {
-       return res.status(404).send("No hay datos para exportar.");
+    if (!rawResponses.length) {
+       return res.status(404).send("No hay suficientes datos de alumnos reales para exportar.");
     }
 
-    const headers = Object.keys(data[0]);
-    const csvRows = [headers.join(',')];
+    const usersMap = {};
+    const allQuestionIds = new Set();
+    const phaseNames = ['Fase 1: Los Archivos de la Humanidad', 'Fase 2: El Mapa del Detective', 'Fase 3: Las Lentes del Investigador', 'Fase 4: La Sospecha y el Campo', 'Fase 5: El Jefe Final'];
+
+    rawResponses.forEach(row => {
+        const u = row.usuario;
+        if (!usersMap[u]) {
+            usersMap[u] = {
+                xp: row.xp_acumulada_total,
+                vidas: row.vidas_restantes_total,
+                modulo_max: row.modulo_max_alcanzado,
+                racha: row.racha_dias,
+                phases: {},
+                questions: {}
+            };
+            phaseNames.forEach(p => {
+               usersMap[u].phases[p] = { total: 0, correct: 0, time: 0, azar: 0 };
+            });
+        }
+        
+        const p = row.modulo_pregunta;
+        if (usersMap[u].phases[p]) {
+            usersMap[u].phases[p].total += 1;
+            usersMap[u].phases[p].correct += row.is_correct;
+            usersMap[u].phases[p].time += row.tiempo_respuesta_ms;
+            if (row.perfil_comportamiento === 'Azar Rápido') usersMap[u].phases[p].azar += 1;
+        }
+
+        // Se guarda el último intento cronológico para cada ID de pregunta
+        usersMap[u].questions[row.question_id] = {
+            resultado: row.resultado_respuesta,
+            tiempo: row.tiempo_respuesta_ms,
+            perfil: row.perfil_comportamiento
+        };
+        allQuestionIds.add(row.question_id);
+    });
+
+    const sortedQids = Array.from(allQuestionIds).sort();
+
+    const headers = ['Usuario', 'XP_Total', 'Vidas_Restantes', 'Modulo_Max_Alcanzado', 'Racha_Dias'];
     
-    for (const row of data) {
-       const values = headers.map(header => {
-          let val = row[header];
-          if (val === null || val === undefined) val = '';
-          val = val.toString().replace(/"/g, '""');
-          return `"${val}"`;
-       });
-       csvRows.push(values.join(','));
-    }
+    phaseNames.forEach((p, idx) => {
+        const m = `Fase_${idx+1}`;
+        headers.push(`${m}_Misiones_Jugadas`);
+        headers.push(`${m}_Nota_Vigesimal_Calculada`);
+        headers.push(`${m}_Total_Aciertos`);
+        headers.push(`${m}_Tiempo_Dedicado_ms`);
+        headers.push(`${m}_Penalidades_Azar_Rapido`);
+    });
+
+    sortedQids.forEach(qid => {
+        headers.push(`[${qid}]_Resultado`);
+        headers.push(`[${qid}]_Tiempo_ms`);
+        headers.push(`[${qid}]_Comportamiento`);
+    });
+
+    const csvRows = [headers.join(',')];
+
+    Object.keys(usersMap).forEach(uname => {
+        const u = usersMap[uname];
+        const row = [`"${uname}"`, u.xp, u.vidas, u.modulo_max, u.racha];
+
+        phaseNames.forEach(p => {
+            const mData = u.phases[p];
+            let nota = '';
+            if (mData.total > 0) {
+                nota = Math.round(10 + (mData.correct / mData.total) * 10);
+            }
+            row.push(mData.total, nota, mData.correct, mData.time, mData.azar);
+        });
+
+        sortedQids.forEach(qid => {
+            if (u.questions[qid]) {
+                const qd = u.questions[qid];
+                row.push(`"${qd.resultado}"`, qd.tiempo, `"${qd.perfil}"`);
+            } else {
+                row.push('', '', '');
+            }
+        });
+
+        csvRows.push(row.join(','));
+    });
 
     res.setHeader('Content-Type', 'text/csv; charset=utf-8');
-    res.setHeader('Content-Disposition', 'attachment; filename="buhotech_research_data.csv"');
-    res.send("\uFEFF" + csvRows.join('\n'));
+    res.setHeader('Content-Disposition', 'attachment; filename="buhotech_investigacion_wide.csv"');
+    res.send("\\uFEFF" + csvRows.join('\\n'));
   } catch (err) {
     console.error('Export endpoint error:', err);
     res.status(500).json({ error: 'Failed to generate CSV.' });
