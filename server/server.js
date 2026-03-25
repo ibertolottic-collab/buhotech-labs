@@ -222,21 +222,38 @@ app.get('/api/admin/export', (req, res) => {
   try {
     const data = db.prepare(`
         SELECT 
-          u.username as username,
-          u.xp as xp_total,
-          u.hearts as vidas_restantes,
-          u.unlocked_module as modulo_alcanzado,
+          u.username as usuario,
+          u.xp as xp_acumulada_total,
+          u.hearts as vidas_restantes_total,
+          u.unlocked_module as modulo_max_alcanzado,
           q.phase as modulo_pregunta,
-          q.type as tema_pregunta,
-          r.sub_question_type as iteracion,
-          r.is_correct as fue_correcta,
-          r.response_time_ms as tiempo_ms,
-          r.behavior_flag as flag_comportamiento,
-          r.timestamp as fecha_hora
+          q.type as tema_concepto,
+          CASE 
+            WHEN r.sub_question_type = 'main' THEN 'Principal'
+            WHEN r.sub_question_type = 'verification' THEN 'Refuerzo/Verificación'
+            WHEN r.sub_question_type = 'rescue' THEN 'Rescate'
+            ELSE r.sub_question_type 
+          END as tipo_mision,
+          CASE 
+            WHEN r.is_correct = 1 THEN 'Correcto'
+            ELSE 'Incorrecto' 
+          END as resultado_respuesta,
+          CASE 
+            WHEN r.behavior_flag = 'FAST_RANDOM' THEN 'Azar Rápido (Penalizado)'
+            WHEN r.behavior_flag = 'SEARCHING_THINKING' THEN 'Pensamiento Crítico'
+            ELSE 'Normal' 
+          END as perfil_comportamiento,
+          r.response_time_ms as tiempo_respuesta_ms,
+          CASE 
+            WHEN r.is_correct = 1 AND r.behavior_flag != 'FAST_RANDOM' THEN 10 
+            ELSE 0 
+          END as xp_obtenida_pregunta,
+          ROUND(10.0 + (SUM(r.is_correct) OVER (PARTITION BY r.user_id, q.phase) * 10.0 / COUNT(r.id) OVER (PARTITION BY r.user_id, q.phase)), 1) as nota_vigesimal_del_modulo,
+          datetime(r.timestamp, 'localtime') as fecha_hora
         FROM user_responses r
         JOIN users u ON r.user_id = u.id
         JOIN questions q ON r.question_id = q.id
-        ORDER BY r.timestamp DESC
+        ORDER BY u.username ASC, r.timestamp ASC
     `).all();
 
     if (!data.length) {
