@@ -91,7 +91,7 @@ export default function Dashboard({ user, onStart, onLogout }) {
   };
 
   return (
-    <div className="flex-1 flex flex-col pt-6">
+    <div className="flex-1 flex flex-col pt-6 overflow-hidden">
       <div className="px-6 flex justify-between items-center mb-8 border-b border-slate-100 pb-4">
         <h2 className="text-xl font-extrabold tracking-tight">¡Hola, {user.username}!</h2>
         <button onClick={onLogout} className="p-2 text-slate-400 hover:text-slate-700">
