@@ -339,7 +339,7 @@ app.get('/api/admin/export', (req, res) => {
 
     res.setHeader('Content-Type', 'text/csv; charset=utf-8');
     res.setHeader('Content-Disposition', 'attachment; filename="buhotech_investigacion_wide.csv"');
-    res.send("\\uFEFF" + csvRows.join('\\n'));
+    res.send("\uFEFF" + csvRows.join('\r\n'));
   } catch (err) {
     console.error('Export endpoint error:', err);
     res.status(500).json({ error: 'Failed to generate CSV.' });
