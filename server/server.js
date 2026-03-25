@@ -217,6 +217,54 @@ app.get('/api/users/:id/report', (req, res) => {
   }
 });
 
+// Admin Export Endpoint
+app.get('/api/admin/export', (req, res) => {
+  try {
+    const data = db.prepare(`
+        SELECT 
+          u.username as username,
+          u.xp as xp_total,
+          u.hearts as vidas_restantes,
+          u.unlocked_module as modulo_alcanzado,
+          q.phase as modulo_pregunta,
+          q.type as tema_pregunta,
+          r.sub_question_type as iteracion,
+          r.is_correct as fue_correcta,
+          r.response_time_ms as tiempo_ms,
+          r.behavior_flag as flag_comportamiento,
+          r.timestamp as fecha_hora
+        FROM user_responses r
+        JOIN users u ON r.user_id = u.id
+        JOIN questions q ON r.question_id = q.id
+        ORDER BY r.timestamp DESC
+    `).all();
+
+    if (!data.length) {
+       return res.status(404).send("No hay datos para exportar.");
+    }
+
+    const headers = Object.keys(data[0]);
+    const csvRows = [headers.join(',')];
+    
+    for (const row of data) {
+       const values = headers.map(header => {
+          let val = row[header];
+          if (val === null || val === undefined) val = '';
+          val = val.toString().replace(/"/g, '""');
+          return `"${val}"`;
+       });
+       csvRows.push(values.join(','));
+    }
+
+    res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+    res.setHeader('Content-Disposition', 'attachment; filename="buhotech_research_data.csv"');
+    res.send("\uFEFF" + csvRows.join('\n'));
+  } catch (err) {
+    console.error('Export endpoint error:', err);
+    res.status(500).json({ error: 'Failed to generate CSV.' });
+  }
+});
+
 // Serve compiled frontend in production
 const clientBuildPath = path.join(__dirname, '../client/dist');
 app.use(express.static(clientBuildPath));

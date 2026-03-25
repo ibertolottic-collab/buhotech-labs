@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import Login from './components/Login';
 import Dashboard from './components/Dashboard';
 import Lesson from './components/Lesson';
+import AdminDashboard from './components/AdminDashboard';
 import './index.css';
 
 function App() {
@@ -11,7 +12,12 @@ function App() {
 
   const handleLogin = (userData) => {
     setUser(userData);
-    setCurrentView('dashboard');
+    const uname = userData.username.toLowerCase().trim();
+    if (uname === 'admin' || uname === 'admin-buhotech') {
+      setCurrentView('admin');
+    } else {
+      setCurrentView('dashboard');
+    }
   };
 
   const handleStartLesson = (phaseName) => {
@@ -33,6 +39,7 @@ function App() {
       <div className="w-full max-w-md bg-white md:rounded-[2rem] shadow-2xl overflow-hidden md:border border-slate-200 flex flex-col relative h-[100dvh] md:h-[95vh] md:max-h-[900px]">
         {currentView === 'login' && <Login onLogin={handleLogin} />}
         {currentView === 'dashboard' && <Dashboard user={user} onStart={handleStartLesson} onLogout={() => setUser(null)} />}
+        {currentView === 'admin' && <AdminDashboard onLogout={() => { setUser(null); setCurrentView('login'); }} />}
         {currentView === 'lesson' && <Lesson user={user} phase={selectedPhase} onEnd={handleEndLesson} />}
       </div>
     </div>
