@@ -286,7 +286,7 @@ export default function Lesson({ user, phase, onEnd }) {
   }
 
   return (
-    <div className="flex-1 flex flex-col h-full bg-white relative override-scroll pb-10">
+    <div className="flex-1 flex flex-col bg-white relative override-scroll pb-10">
       {/* Header Progress */}
       <div className="px-4 py-3 sm:px-6 sm:py-4 flex items-center justify-between z-10 bg-white shadow-sm border-b border-slate-100">
         <button onClick={() => onEnd(user)} className="text-slate-400 hover:text-slate-600 transition-colors shrink-0">
@@ -315,7 +315,7 @@ export default function Lesson({ user, phase, onEnd }) {
         {/* Scenario Image */}
         {currentImage && (
           <div 
-             className="w-full max-w-sm aspect-video bg-indigo-50 rounded-2xl mb-8 border-4 border-slate-100 flex flex-col items-center justify-center overflow-hidden cursor-pointer hover:scale-[1.02] hover:shadow-xl transition-all duration-300 relative group"
+             className="w-full max-w-sm aspect-video bg-indigo-50 rounded-2xl mb-8 border-4 border-slate-100 flex flex-col items-center justify-center overflow-hidden cursor-pointer hover:scale-[1.02] hover:shadow-xl transition-all duration-300 relative group flex-shrink-0"
             onClick={() => setIsExpanded(true)}
           >
             <img 
