@@ -150,7 +150,8 @@ export default function Lesson({ user, phase, onEnd }) {
         question_id: currentQ.id,
         is_correct: isCorrect,
         response_time_ms: responseTimeMs,
-        sub_question_type: subQuestionType
+        sub_question_type: subQuestionType,
+        selected_option_id: selectedOption
       });
 
       setFeedback({

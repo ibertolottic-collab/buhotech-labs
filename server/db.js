@@ -43,6 +43,7 @@ db.exec(`
     response_time_ms INTEGER,
     behavior_flag TEXT,
     sub_question_type TEXT DEFAULT 'main',
+    selected_option_id TEXT,
     timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY(user_id) REFERENCES users(id),
     FOREIGN KEY(question_id) REFERENCES questions(id)
@@ -55,5 +56,9 @@ try {
 } catch (e) {
   // Column already exists, ignore
 }
+
+try {
+  db.exec(`ALTER TABLE user_responses ADD COLUMN selected_option_id TEXT`);
+} catch (e) {}
 
 module.exports = db;

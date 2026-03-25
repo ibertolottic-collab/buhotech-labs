@@ -84,7 +84,7 @@ app.post('/api/users/:id/complete_module', (req, res) => {
 
 // Response & Metric Logic
 app.post('/api/responses', (req, res) => {
-  const { user_id, question_id, is_correct, response_time_ms, sub_question_type = 'main' } = req.body;
+  const { user_id, question_id, is_correct, response_time_ms, sub_question_type = 'main', selected_option_id } = req.body;
   
   const question = db.prepare('SELECT * FROM questions WHERE id = ?').get(question_id);
   if (!question) return res.status(404).json({ error: 'Question not found' });
@@ -98,9 +98,9 @@ app.post('/api/responses', (req, res) => {
 
   // Record metrics
   db.prepare(`
-    INSERT INTO user_responses (user_id, question_id, is_correct, response_time_ms, behavior_flag, sub_question_type) 
-    VALUES (?, ?, ?, ?, ?, ?)
-  `).run(user_id, question_id, is_correct ? 1 : 0, response_time_ms, behavior_flag, sub_question_type);
+    INSERT INTO user_responses (user_id, question_id, is_correct, response_time_ms, behavior_flag, sub_question_type, selected_option_id) 
+    VALUES (?, ?, ?, ?, ?, ?, ?)
+  `).run(user_id, question_id, is_correct ? 1 : 0, response_time_ms, behavior_flag, sub_question_type, selected_option_id || null);
 
   // Update user state if behavior was normal or thinking
   let user = db.prepare('SELECT * FROM users WHERE id = ?').get(user_id);
@@ -229,6 +229,7 @@ app.get('/api/admin/export', (req, res) => {
           u.streak_days as racha_dias,
           q.phase as modulo_pregunta,
           r.question_id,
+          r.selected_option_id,
           CASE 
             WHEN r.is_correct = 1 THEN 'Correcto'
             ELSE 'Incorrecto' 
@@ -283,7 +284,8 @@ app.get('/api/admin/export', (req, res) => {
         usersMap[u].questions[row.question_id] = {
             resultado: row.resultado_respuesta,
             tiempo: row.tiempo_respuesta_ms,
-            perfil: row.perfil_comportamiento
+            perfil: row.perfil_comportamiento,
+            opcion_elegida: row.selected_option_id
         };
         allQuestionIds.add(row.question_id);
     });
@@ -303,6 +305,7 @@ app.get('/api/admin/export', (req, res) => {
 
     sortedQids.forEach(qid => {
         headers.push(`[${qid}]_Resultado`);
+        headers.push(`[${qid}]_Opcion_Elegida`);
         headers.push(`[${qid}]_Tiempo_ms`);
         headers.push(`[${qid}]_Comportamiento`);
     });
@@ -325,9 +328,9 @@ app.get('/api/admin/export', (req, res) => {
         sortedQids.forEach(qid => {
             if (u.questions[qid]) {
                 const qd = u.questions[qid];
-                row.push(`"${qd.resultado}"`, qd.tiempo, `"${qd.perfil}"`);
+                row.push(`"${qd.resultado}"`, `"${qd.opcion_elegida || ''}"`, qd.tiempo, `"${qd.perfil}"`);
             } else {
-                row.push('', '', '');
+                row.push('', '', '', '');
             }
         });
 
