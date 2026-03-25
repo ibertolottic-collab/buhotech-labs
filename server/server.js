@@ -264,6 +264,8 @@ app.get('/api/admin/export', (req, res) => {
                 vidas: row.vidas_restantes_total,
                 modulo_max: row.modulo_max_alcanzado,
                 racha: row.racha_dias,
+                global_correct: 0,
+                global_total: 0,
                 phases: {},
                 questions: {}
             };
@@ -273,6 +275,9 @@ app.get('/api/admin/export', (req, res) => {
         }
         
         const p = row.modulo_pregunta;
+        usersMap[u].global_total += 1;
+        usersMap[u].global_correct += row.is_correct;
+        
         if (usersMap[u].phases[p]) {
             usersMap[u].phases[p].total += 1;
             usersMap[u].phases[p].correct += row.is_correct;
@@ -292,7 +297,7 @@ app.get('/api/admin/export', (req, res) => {
 
     const sortedQids = Array.from(allQuestionIds).sort();
 
-    const headers = ['Usuario', 'XP_Total', 'Vidas_Restantes', 'Modulo_Max_Alcanzado', 'Racha_Dias'];
+    const headers = ['Usuario', 'XP_Total', 'Vidas_Restantes', 'Modulo_Max_Alcanzado', 'Racha_Dias', 'Nota_Vigesimal_Final_Global'];
     
     phaseNames.forEach((p, idx) => {
         const m = `Fase_${idx+1}`;
@@ -314,7 +319,13 @@ app.get('/api/admin/export', (req, res) => {
 
     Object.keys(usersMap).forEach(uname => {
         const u = usersMap[uname];
-        const row = [`"${uname}"`, u.xp, u.vidas, u.modulo_max, u.racha];
+        
+        let globalNota = '';
+        if (u.global_total > 0) {
+            globalNota = Math.round(10 + (u.global_correct / u.global_total) * 10);
+        }
+        
+        const row = [`"${uname}"`, u.xp, u.vidas, u.modulo_max, u.racha, globalNota];
 
         phaseNames.forEach(p => {
             const mData = u.phases[p];
