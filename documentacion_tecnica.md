@@ -2,7 +2,7 @@
 ## Documentación Técnica del Sistema
 
 > **USMP - Virtual** | Plataforma Gamificada de Aprendizaje de Metodología de la Investigación potenciada con IA
-> **Estado del Proyecto**: En desarrollo activo (MVP funcional con 5 módulos pedagógicos).
+> **Estado del Proyecto**: 🟢 DESPLEGADO EN PRODUCCIÓN (Railway)
 
 ---
 
@@ -285,7 +285,7 @@ Nota = 10 + (aciertos / total_misiones) × 10
 
 ### Pendientes / Mejoras Futuras 🔲
 
-- [ ] Deploy a producción (Vercel / Railway)
+- [x] Deploy a producción (Railway) con dominio SSL
 - [ ] Autenticación con credenciales institucionales (LDAP / SSO USMP)
 - [ ] Panel de administración para docentes
 - [ ] Estadísticas agregadas por aula/sección
@@ -325,6 +325,13 @@ node server.js
 cd client
 npm run dev
 ```
+
+### Despliegue en la Nube (Railway)
+- **URL**: [https://buhotech-labs-production-bf0e.up.railway.app](https://buhotech-labs-production-bf0e.up.railway.app)
+- **Node Version**: 20.x
+- **Port**: 8080 (asignado por Railway)
+- **Instalación Automática**: El script `build` raíz ejecuta `npm install` en todas las subcarpetas.
+- **Base de Datos**: Auto-seeding activado si la tabla `questions` está vacía.
 
 ### Variables de Entorno
 
