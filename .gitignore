@@ -6,3 +6,4 @@ build/
 .DS_Store
 *.log
 server/firebase-service-account.json
+buhotech-labs-usmp-firebase-adminsdk-fbsvc-9c49323e7a.json

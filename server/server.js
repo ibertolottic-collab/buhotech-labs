@@ -11,7 +11,8 @@ app.use(cors());
 app.use(express.json());
 
 // Servir la carpeta estática de imágenes
-// Vercel y Vite se encargarán de servir las imágenes de /client/public/images/
+// Servir la carpeta estática de imágenes
+app.use('/images', express.static(path.join(__dirname, '../Imagenes')));
 
 // --- AUTO-SEED DATA IF EMPTY (FOR CLOUD) ---
 const seedDatabase = async () => {
@@ -408,13 +409,14 @@ app.get('/api/admin/export', async (req, res) => {
   }
 });
 
-// === VERCEL SERVERLESS CONFIGURATION ===
-// En Vercel, no se usa app.listen, se exporta la app.
-if (process.env.NODE_ENV !== 'production' && !process.env.VERCEL) {
-  const PORT = process.env.PORT || 3001;
-  app.listen(PORT, () => {
-    console.log(`Server running on http://localhost:${PORT}`);
-  });
-}
+// Serve compiled frontend in production
+const clientBuildPath = path.join(__dirname, '../client/dist');
+app.use(express.static(clientBuildPath));
+app.use((req, res) => {
+  res.sendFile(path.join(clientBuildPath, 'index.html'));
+});
 
-module.exports = app;
+const PORT = process.env.PORT || 3001;
+app.listen(PORT, () => {
+  console.log(`Server running on http://localhost:${PORT}`);
+});
