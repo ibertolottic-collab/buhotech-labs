@@ -1,0 +1,14 @@
+{
+  "name": "buhotech-labs",
+  "version": "1.0.0",
+  "description": "Búhotech Labs - Modelo Birdbrain: Plataforma gamificada de Metodología de la Investigación (USMP)",
+  "scripts": {
+    "install:all": "cd server && npm install && cd ../client && npm install",
+    "build": "npm run install:all && cd client && npm run build",
+    "seed": "cd server && node seed.js",
+    "start": "cd server && node server.js"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}
